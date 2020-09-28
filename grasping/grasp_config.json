@@ -1,0 +1,53 @@
+{
+  "grasp_order_desired": [
+    "small_round_peg",
+    "big_square_peg",
+    "big_round_peg",
+    "bnc",
+    "big_gear",
+    "small_gear",
+    "belt",
+    "small_square_peg",
+    "ethernet_cable_head"
+  ],
+  "grasp_width": {
+    "big_round_peg": 0.015,
+    "small_round_peg": 0.007,
+    "big_gear": 0.03,
+    "small_gear": 0.016,
+    "bnc": 0.014,
+    "belt": 0.004,
+    "small_square_peg": 0.004,
+    "big_square_peg": 0.012,
+    "ethernet_cable_head": 0.012
+  },
+  "grasp_width_clearance": {
+    "default": 0.005,
+    "belt": 0.01
+  },
+  "grasp_other_clearance": 0.01,
+  "grasp_sym_rot_deg": {
+    "small_round_peg": 10,
+    "big_square_peg": 180,
+    "big_round_peg": 10,
+    "bnc": 10,
+    "big_gear": 10,
+    "small_gear": 10,
+    "belt": 10,
+    "small_square_peg": 360,
+    "ethernet_cable_head": 360
+  },
+  "grasp_sym_offset": {
+    "default": [
+      0,
+      0,
+      0
+    ],
+    "belt": [
+      -0.065,
+      0,
+      0
+    ]
+  }
+}
+

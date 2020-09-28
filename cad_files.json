@@ -1,0 +1,11 @@
+{
+  "belt": "belt",
+  "small_gear": "GEABP1.0-20-10-B-10_Gear_20teeth",
+  "big_gear": "GEABP1.0-40-10-B-10_Gear_40teeth",
+  "ethernet_cable_head": "ethernet cable head",
+  "bnc": "BNCP-1.5A-K",
+  "big_square_peg": "KET12_Square_12mm",
+  "small_square_peg": "KET4_Square_4mm",
+  "small_round_peg": "RGOCG8-50_8mm",
+  "big_round_peg": "RGOCG16-50_16mm"
+}
