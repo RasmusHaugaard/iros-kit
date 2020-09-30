@@ -1,0 +1,51 @@
+{
+  "belt": {
+    "up_kit": "z",
+    "height_offset_kit": 0.002
+  },
+  "small_gear": {
+    "up_kit": "-z",
+    "height_offset_kit": 0
+  },
+  "big_gear": {
+    "up_kit": "-z",
+    "height_offset_kit": 0
+  },
+  "ethernet_cable_head": {
+    "up_kit": "-y",
+    "forward_kit": "-z",
+    "center_offset_kit": [
+      0,
+      0,
+      0.019
+    ],
+    "height_offset_kit": 0.004
+  },
+  "bnc": {
+    "up_kit": "y",
+    "center_offset_kit": [
+      0.001,
+      0,
+      0.007
+    ],
+    "height_offset_kit": 0.0108
+  },
+  "big_square_peg": {
+    "up_kit": "-z",
+    "forward_kit": "x",
+    "height_offset_kit": 0.025
+  },
+  "small_square_peg": {
+    "up_kit": "y",
+    "forward_kit": "-z",
+    "height_offset_kit": 0.002
+  },
+  "small_round_peg": {
+    "up_kit": "-z",
+    "height_offset_kit": 0.025
+  },
+  "big_round_peg": {
+    "up_kit": "-z",
+    "height_offset_kit": 0.025
+  }
+}
