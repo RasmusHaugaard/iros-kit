@@ -13,6 +13,7 @@ $ pip3 install -e .
 ```
 ### usage
 Object pose extraction:  
-See iros_kit/pose_extraction/extract_kit_t_objects.py:main
+See *iros_kit/pose_extraction/extract_kit_t_objects.py:main*
 
-Grasp order and pose:
+Grasp order and pose:  
+See *iros_kit/grasping/scripts/grasp_test.py*

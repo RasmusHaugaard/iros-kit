@@ -11,15 +11,15 @@
     "ethernet_cable_head"
   ],
   "grasp_width": {
-    "big_round_peg": 0.015,
-    "small_round_peg": 0.007,
-    "big_gear": 0.03,
-    "small_gear": 0.016,
-    "bnc": 0.014,
-    "belt": 0.004,
-    "small_square_peg": 0.004,
-    "big_square_peg": 0.012,
-    "ethernet_cable_head": 0.012
+    "big_round_peg": 0.006,
+    "small_round_peg": 0.002,
+    "big_gear": 0.022,
+    "small_gear": 0.006,
+    "bnc": 0.004,
+    "belt": 0.001,
+    "small_square_peg": 0.002,
+    "big_square_peg": 0.008,
+    "ethernet_cable_head": 0.010
   },
   "grasp_width_clearance": {
     "default": 0.005,
