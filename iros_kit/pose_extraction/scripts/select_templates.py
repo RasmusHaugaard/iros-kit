@@ -1,14 +1,13 @@
 import cv2
 import json
-import svg_to_img
+from iros_kit.pose_extraction.svg_to_img import svg_to_numpy
 
-objects = json.load(open('../objects.json'))
-objects = {key: val for key, val in objects.items() if 'up_kit' in val}
+obj_config = json.load(open('../obj_config.json'))
 
-img = svg_to_img.svg_to_numpy('../IROS2020_KitLayout practice.svg')
+img = svg_to_numpy('../../layouts/practice.svg')
 templates = []
 
-for name, _ in objects.items():
+for name in obj_config.keys():
     roi = cv2.selectROI(name, img, showCrosshair=True)
     cv2.destroyWindow(name)
     if roi == (0, 0, 0, 0):

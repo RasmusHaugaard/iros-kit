@@ -5,7 +5,11 @@ setup(
     version='0.0.1',
     install_requires=[
         'numpy',
+        'matplotlib',
+        'opencv-contrib-python',
+        'cairosvg',
         'trimesh',
+        'pyglet',
         'shapely',
         'triangle',
         'python-fcl',

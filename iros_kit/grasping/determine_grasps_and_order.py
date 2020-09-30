@@ -1,10 +1,11 @@
 import json
 from pathlib import Path
+from typing import Dict, List
 
 import numpy as np
 import trimesh
 from trimesh.creation import extrude_polygon
-from trimesh.collision import CollisionManager  # requires libfcl-dev and python-fcl
+from trimesh.collision import CollisionManager
 from shapely.geometry import Polygon
 from transform3d import Transform
 
@@ -35,40 +36,41 @@ def build_finger_grasp_volume(grasp_width: float, w=0.032, h=0.035,
 
 
 def determine_grasps(
-        objects,  # List[(name, mesh, kit_t_o, tcp_t_o, grasp_width, sym_deg, sym_offset)]
+        obj_grasp_configs, kit_t_objects: Dict[str, Transform],
         min_clearance, debug=False, debug_view_res=(800, 500)
 ):
     if debug:
         scene = trimesh.Scene()
-        for name, mesh, kit_t_o, *_ in objects:
-            scene.add_geometry(mesh, transform=kit_t_o.matrix, geom_name=name)
+        for name, mesh, *_ in obj_grasp_configs:
+            scene.add_geometry(mesh, transform=kit_t_objects[name].matrix, geom_name=name)
         scene.show(resolution=debug_view_res)
 
-    lense = trimesh.load_mesh('../stl/lense.stl')
+    lense = trimesh.load_mesh(Path(__file__).parent.parent / 'stl' / 'lense.stl')
     lense.apply_scale(1e-3)
     col_tool = CollisionManager()
     col_tool.add_object('lense', lense)
 
     col_objects = CollisionManager()
-    for name, mesh, kit_t_o, *_ in objects:
-        col_objects.add_object(name, mesh, transform=kit_t_o.matrix)
+    for name, mesh, *_ in obj_grasp_configs:
+        col_objects.add_object(name, mesh, transform=kit_t_objects[name].matrix)
 
     worst_possible_clearance = np.inf
     grasps = []
-    candidates = [*objects]
+    candidates = [*obj_grasp_configs]
     clearances = []
     i = 0
     while candidates:
         candidate = candidates[i]
-        name, mesh, kit_t_o, tcp_t_o, grasp_width, sym_deg, sym_offset = candidate
+        name, mesh, tcp_t_obj, grasp_start_width, grasp_end_width, sym_deg, sym_offset = candidate
+        kit_t_obj = kit_t_objects[name]
 
         # move away the grasp obj to ignore obj-tcp collision
         col_objects.set_transform(name, Transform(p=(1000, 0, 0)).matrix)
 
-        finger_grasp_volume = build_finger_grasp_volume(grasp_width)
+        finger_grasp_volume = build_finger_grasp_volume(grasp_start_width)
         col_tool.add_object('finger_grasp_volume', finger_grasp_volume)
 
-        kit_t_tcp = kit_t_o @ tcp_t_o.inv
+        kit_t_tcp = kit_t_obj @ tcp_t_obj.inv
         ts = rotational_grasp_symmetry(kit_t_tcp, sym_deg, sym_offset)
         dists, dists_name = [], []
         for t in ts:
@@ -81,25 +83,26 @@ def determine_grasps(
             dists_name.append(dist_names[0])
         di = np.argmax(dists).item()
         kit_t_tcp, dist, dist_name = ts[di], dists[di], dists_name[di]
+        tcp_t_obj = kit_t_tcp.inv @ kit_t_obj
 
         col_tool.remove_object('finger_grasp_volume')
 
         if dist > min_clearance:
-            grasps.append((name, kit_t_tcp, grasp_width))
+            grasps.append((name, tcp_t_obj, grasp_start_width, grasp_end_width))
             candidates.remove(candidate)
             clearances.append(dist)
             i = 0
-            print(f'{name}: {dist:.3f}')
-
             if debug:
+                print(f'{name}: {dist:.3f}')
                 scene.add_geometry(lense, transform=kit_t_tcp.matrix, geom_name='lense')
                 scene.add_geometry(finger_grasp_volume, transform=kit_t_tcp.matrix, geom_name='finger_grasp_volume')
                 scene.show(resolution=debug_view_res)
                 scene.delete_geometry([name, 'lense', 'finger_grasp_volume'])
         else:
-            print(f'!! {name}: {dist_name} {dist:.3f} - changing order')
+            if debug:
+                print(f'!! {name}: {dist_name} {dist:.3f} - changing order')
             # move the grasp object back in place
-            col_objects.set_transform(name, kit_t_o.matrix)
+            col_objects.set_transform(name, kit_t_obj.matrix)
             i += 1
             if i == len(candidates):
                 raise RuntimeError('cant find solution with this clearance')
@@ -107,51 +110,65 @@ def determine_grasps(
     return grasps
 
 
-def determine_grasps_robust(objects, min_clearance, debug=False, debug_view_res=(800, 500),
-                            attempts=10):
+def determine_grasps_robust(obj_grasp_configs, kit_t_objects: Dict[str, Transform], min_clearance, attempts=10,
+                            debug=False, debug_view_res=(800, 500)):
     i = 0
     while True:
         try:
-            grasps = determine_grasps(objects, min_clearance)
+            grasps = determine_grasps(obj_grasp_configs, kit_t_objects, min_clearance)
             break
         except RuntimeError as e:
-            print()
+            if debug:
+                print(f'Didn\'t find solution at min_clearance: {min_clearance}')
             i += 1
             if i == attempts:
                 raise e
             min_clearance *= 0.75
     if debug:
-        determine_grasps(objects, min_clearance, debug=True, debug_view_res=debug_view_res)
+        determine_grasps(obj_grasp_configs, kit_t_objects, min_clearance, debug=True, debug_view_res=debug_view_res)
     return grasps, min_clearance
 
 
-def load_objects(grasp_config: dict, layout: str):
+def load_grasp_config(grasp_order_desired: List[str] = None):
     kit_root = Path(__file__).parent.parent
 
-    grasp_order_desired = grasp_config['grasp_order_desired']
     cad_files = json.load(open(kit_root / 'cad_files.json'))
+    grasp_config = json.load(open(kit_root / 'grasping' / 'grasp_config.json'))
+    min_clearance = grasp_config['grasp_other_clearance']
 
-    objects = []
+    if grasp_order_desired is None:
+        grasp_order_desired = grasp_config['grasp_order_desired']
+
+    obj_grasp_configs = []
     for name in grasp_order_desired:
-        grasp_width = grasp_config['grasp_width'][name]
-        grasp_width += from_dict(grasp_config['grasp_width_clearance'], name)
+        grasp_end_width = grasp_config['grasp_width'][name]
+        grasp_start_width = grasp_end_width + from_dict(grasp_config['grasp_width_clearance'], name)
         sym_deg = grasp_config['grasp_sym_rot_deg'][name]
         sym_offset = from_dict(grasp_config['grasp_sym_offset'], name)
 
         mesh = trimesh.load_mesh(kit_root / 'stl' / f'{cad_files[name]}.stl')
         mesh.apply_scale(1e-3)
-        kit_t_o = Transform.load(kit_root / 'pose_extraction' / f'kit_t_objects_{layout}' / f'kit_t_{name}')
-        tcp_t_o = Transform.load(kit_root / 'grasping' / 'tcp_t_obj_grasp' / f'tcp_t_{name}_grasp')
-        objects.append((name, mesh, kit_t_o, tcp_t_o, grasp_width, sym_deg, sym_offset))
+        tcp_t_obj = Transform.load(kit_root / 'grasping' / 'tcp_t_obj_grasp' / f'tcp_t_{name}_grasp')
+        obj_grasp_configs.append((name, mesh, tcp_t_obj, grasp_start_width, grasp_end_width, sym_deg, sym_offset))
 
-    return objects
+    return obj_grasp_configs, min_clearance
 
 
 def main():
-    grasp_config = json.load(open('grasp_config.json'))
-    layout = 'custom_0'
-    objects = load_objects(grasp_config, layout)
-    grasps, min_clearance = determine_grasps_robust(objects, grasp_config['grasp_other_clearance'], debug=True)
+    from argparse import ArgumentParser
+
+    from iros_kit.pose_extraction.extract_kit_t_objects import extract_kit_t_objects
+    from iros_kit import layouts
+
+    parser = ArgumentParser()
+    parser.add_argument('--layout', default=layouts.practice_fp)
+    parser.add_argument('--debug', action='store_true')
+    args = parser.parse_args()
+
+    kit_t_objects = extract_kit_t_objects(args.layout)
+    obj_grasp_configs, min_clearance = load_grasp_config()
+    grasps, min_clearance = determine_grasps_robust(obj_grasp_configs, kit_t_objects, min_clearance, debug=args.debug)
+
     print([g[0] for g in grasps])
     print(min_clearance)
 
