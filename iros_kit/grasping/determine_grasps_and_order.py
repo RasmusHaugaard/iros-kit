@@ -110,23 +110,23 @@ def determine_grasps(
     return grasps
 
 
-def determine_grasps_robust(obj_grasp_configs, kit_t_objects: Dict[str, Transform], min_clearance, attempts=10,
-                            debug=False, debug_view_res=(800, 500)):
-    i = 0
+def determine_grasps_decreasing_clearance(obj_grasp_configs, kit_t_objects: Dict[str, Transform],
+                                          min_clearance_desired=0.01, min_clearance=0.001,
+                                          decrease_factor=0.75, debug=False, debug_view_res=(800, 500)):
+    clearance = min_clearance_desired
     while True:
         try:
-            grasps = determine_grasps(obj_grasp_configs, kit_t_objects, min_clearance)
+            grasps = determine_grasps(obj_grasp_configs, kit_t_objects, clearance)
             break
         except RuntimeError as e:
             if debug:
-                print(f'Didn\'t find solution at min_clearance: {min_clearance}')
-            i += 1
-            if i == attempts:
+                print(f'Didn\'t find solution at clearance: {clearance}')
+            clearance *= decrease_factor
+            if clearance < min_clearance:
                 raise e
-            min_clearance *= 0.75
     if debug:
-        determine_grasps(obj_grasp_configs, kit_t_objects, min_clearance, debug=True, debug_view_res=debug_view_res)
-    return grasps, min_clearance
+        determine_grasps(obj_grasp_configs, kit_t_objects, clearance, debug=True, debug_view_res=debug_view_res)
+    return grasps, clearance
 
 
 def load_grasp_config(grasp_order_desired: List[str] = None):
@@ -167,7 +167,8 @@ def main():
 
     kit_t_objects = extract_kit_t_objects(args.layout)
     obj_grasp_configs, min_clearance = load_grasp_config()
-    grasps, min_clearance = determine_grasps_robust(obj_grasp_configs, kit_t_objects, min_clearance, debug=args.debug)
+    grasps, min_clearance = determine_grasps_decreasing_clearance(obj_grasp_configs, kit_t_objects,
+                                                                  min_clearance, debug=args.debug)
 
     print([g[0] for g in grasps])
     print(min_clearance)

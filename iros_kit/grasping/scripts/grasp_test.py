@@ -5,7 +5,7 @@ from transform3d import Transform
 
 from iros_kit import layouts
 from iros_kit.pose_extraction.extract_kit_t_objects import extract_kit_t_objects
-from iros_kit.grasping.determine_grasps_and_order import determine_grasps_robust, load_grasp_config
+from iros_kit.grasping.determine_grasps_and_order import determine_grasps_decreasing_clearance, load_grasp_config
 
 from gripper import get_gripper
 
@@ -27,7 +27,8 @@ args = parser.parse_args()
 base_t_kit = Transform.load(args.base_t_kitlayout)
 kit_t_objects = extract_kit_t_objects(args.layout, debug=args.debug)
 obj_grasp_configs, min_clearance = load_grasp_config(args.obj_names)
-grasps, min_clearance = determine_grasps_robust(obj_grasp_configs, kit_t_objects, min_clearance, debug=args.debug)
+grasps, min_clearance = determine_grasps_decreasing_clearance(obj_grasp_configs, kit_t_objects,
+                                                              min_clearance, debug=args.debug)
 
 gripper = get_gripper()
 gripper.open()
